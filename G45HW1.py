@@ -11,34 +11,44 @@ def MRComputeFairObjective(U,C):
 def MRPrintStatistics(U,C):
     pass
 
-# Giordano
+def parse_line(line):
+    parts = line.strip().split(',')
+    point = tuple(map(float, parts[:-1]))
+    group = parts[-1]
+    return (point, group)
+
 def main():
     if len(sys.argv) != 5:
-        print("Usage: G45HW1.py <input_path> <L> <K> <M>")
+        print("Usage: G45HW1.py <file_path> <L> <K> <M>")
         sys.exit(1)
     
-    input_path, L, K, M = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])
-    print(f"Arguments: input_path={input_path}, L={L}, K={K}, M={M}")
+    file_path, L, K, M = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])
     
-    sc = SparkContext(appName="G45HW1")
-    input_rdd = sc.textFile(input_path, minPartitions=L).map(parse_point)
+    sc = SparkContext(appName="FairKMeans")
     
-    N = input_rdd.count()
-    NA = input_rdd.filter(lambda p: p[1] == 'A').count()
-    NB = input_rdd.filter(lambda p: p[1] == 'B').count()
-    print(f"N={N}, NA={NA}, NB={NB}")
+    points_rdd = sc.textFile(file_path, minPartitions=L).map(parse_line).cache()
     
-    vectors_rdd = input_rdd.map(lambda p: p[0])
-    kmeans_model = KMeans.train(vectors_rdd, K, maxIterations=M, initializationMode="k-means||")
-    centroids = kmeans_model.clusterCenters
+    N = points_rdd.count()
+    NA = points_rdd.filter(lambda x: x[1] == 'A').count()
+    NB = points_rdd.filter(lambda x: x[1] == 'B').count()
     
-    delta = MRComputeStandardObjective(input_rdd, centroids)
-    phi = MRComputeFairObjective(input_rdd, centroids)
-    print(f"Delta(U,C)={delta}")
-    print(f"Phi(A,B,C)={phi}")
+    print(f"======= OUTPUT FOR L = {L}, K = {K}, M = {M} =======")
+    print(f"\nInput file = {file_path}, L = {L}, K = {K}, M = {M}")
+    print(f"N = {N}, NA = {NA}, NB = {NB}")
     
-    MRPrintStatistics(input_rdd, centroids)
+    vectors_rdd = points_rdd.map(lambda x: Vectors.dense(x[0]))
+    model = KMeans.train(vectors_rdd, K, maxIterations=M)
+    centroids = model.clusterCenters
+    
+    delta = MRComputeStandardObjective(points_rdd, centroids)
+    phi = MRComputeFairObjective(points_rdd, centroids)
+    
+    print(f"Delta(U,C) = {delta:.6f}")
+    print(f"Phi(A,B,C) = {phi:.6f}")
+    
+    MRPrintStatistics(points_rdd, centroids)
+    
     sc.stop()
-
+    
 if __name__ == "__main__":
     main()
