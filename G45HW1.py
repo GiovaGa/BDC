@@ -1,23 +1,22 @@
 import sys
 from pyspark import SparkContext, SparkConf
 from pyspark.mllib.clustering import KMeans
-from pyspark.mllib.linalg import Vectors
-
+import numpy as np
 
 # giova
-def MRComputeStandardObjective(U,C):
+def MRComputeStandardObjective(U, C):
     pass
 
-def MRComputeFairObjective(U,C):
+def MRComputeFairObjective(U, C):
     pass
 
 # simpatine
-def MRPrintStatistics(U,C):
+def MRPrintStatistics(U, C):
     pass
 
 def parse_line(line):
     parts = line.strip().split(',')
-    point = tuple(map(float, parts[:-1]))
+    point = np.array([float(x) for x in parts[:-1]])  
     group = parts[-1]
     return (point, group)
 
@@ -40,7 +39,8 @@ def main():
     print(f"\nInput file = {file_path}, L = {L}, K = {K}, M = {M}")
     print(f"N = {N}, NA = {NA}, NB = {NB}")
     
-    vectors_rdd = points_rdd.map(lambda x: Vectors.dense(x[0]))
+    # Usa NumPy per i punti invece di Vectors.dense
+    vectors_rdd = points_rdd.map(lambda x: np.array(x[0]))
     model = KMeans.train(vectors_rdd, K, maxIterations=M)
     centroids = model.clusterCenters
     
