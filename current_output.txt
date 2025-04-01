@@ -1,0 +1,5 @@
+======= OUTPUT FOR L = 1, K = 4, M = 20 =======
+
+Input file = uber_small.csv, L = 1, K = 4, M = 20
+N = 1012, NA = 782, NB = 230
+Delta(U,C) = 0.002119
