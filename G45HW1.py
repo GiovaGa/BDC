@@ -39,7 +39,7 @@ def main():
     print(f"\nInput file = {file_path}, L = {L}, K = {K}, M = {M}")
     print(f"N = {N}, NA = {NA}, NB = {NB}")
     
-    # Usa NumPy per i punti invece di Vectors.dense
+
     vectors_rdd = points_rdd.map(lambda x: np.array(x[0]))
     model = KMeans.train(vectors_rdd, K, maxIterations=M)
     centroids = model.clusterCenters
