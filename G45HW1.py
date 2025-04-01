@@ -1,4 +1,8 @@
+import sys
 from pyspark import SparkContext, SparkConf
+from pyspark.mllib.clustering import KMeans
+from pyspark.mllib.linalg import Vectors
+
 
 # giova
 def MRComputeStandardObjective(U,C):
