@@ -21,8 +21,8 @@ float
     The value of the cost function
     """
 
-    d = (U.flatMap(lambda x : [(x, np.square(np.linalg.norm(x[0]-c))) for c in C])
-         .reduceByKey(min)).flatMap(lambda x: [x[1]])
+    d = (U.flatMap(lambda x : [(x, np.square(np.linalg.norm(np.array(x[0])-c))) for c in C])
+         .reduceByKey(min).flatMap(lambda x: [x[1]]))
     return d.mean()
 
 def MRComputeFairObjective(U, C):
@@ -49,7 +49,7 @@ def MRPrintStatistics(U, C):
 
 def parse_line(line):
     parts = line.strip().split(',')
-    point = np.array([float(x) for x in parts[:-1]])
+    point = tuple(float(x) for x in parts[:-1])
     group = parts[-1]
     return (point, group)
 
@@ -73,7 +73,7 @@ def main():
     print(f"N = {N}, NA = {NA}, NB = {NB}")
 
 
-    vectors_rdd = points_rdd.map(lambda x: np.array(x[0]))
+    vectors_rdd = points_rdd.map(lambda x: tuple(x[0]))
     model = KMeans.train(vectors_rdd, K, maxIterations=M)
     centroids = model.clusterCenters
 
