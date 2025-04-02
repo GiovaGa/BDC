@@ -21,8 +21,7 @@ float
     The value of the cost function
     """
 
-    d = (U.flatMap(lambda x : [(x, np.square(np.linalg.norm(np.array(x[0])-c))) for c in C])
-         .reduceByKey(min).flatMap(lambda x: [x[1]]))
+    d = U.map(lambda x : np.min([np.square(np.array(x[0])-c).sum() for c in C]))
     return d.mean()
 
 def MRComputeFairObjective(U, C):
@@ -39,9 +38,11 @@ C : iterable
 Returns
 -------
 float
-    The value of the cost function
+    The value of the fair cost function
     """
-    pass
+    DeltaA = MRComputeStandardObjective(U.filter(lambda x : x[1] == 'A'), C)
+    DeltaB = MRComputeStandardObjective(U.filter(lambda x : x[1] == 'B'), C)
+    return max(DeltaA, DeltaB)
 
 # simpatine
 def MRPrintStatistics(U, C):
