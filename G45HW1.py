@@ -45,7 +45,63 @@ float
     return max(DeltaA, DeltaB)
 
 # simpatine
+def point_count(list):
+
+    clusters_dict = {}
+
+    for c_id, category in list[1]:
+
+        count = np.array([0,0])
+        if category == 'A':
+          count[0] = 1
+        if category == 'B':
+          count[1] = 1
+
+        if c_id in clusters_dict:
+          clusters_dict[c_id] += count
+        else:
+          clusters_dict[c_id] = count
+
+
+    return clusters_dict.items()
+
 def MRPrintStatistics(U, C):
+    """
+This function prints the number of points that end up in each cluster, divided by category.
+
+Parameters
+----------
+U : pyspark.RDD
+    The set of data points as (pos, category) where pos is a vector and category is either "A" or "B".
+C : iterable
+    The centers
+
+Prints
+------
+Triplets (c_i, NA_i, NB_i): respectively the i-th centroid in C, the number of points of category A in cluster i, and the number of points of category B in cluster i.
+    """
+    N = U.count()
+
+    L = int(np.sqrt(N))
+
+    triplets = (U.map(lambda x: (np.random.randint(0, L-1), (np.argmin([np.square(np.linalg.norm(np.array(x[0])-c)) for c in C]), x[1])))
+                .groupByKey()
+                .flatMap(point_count)
+                .reduceByKey(lambda x, y: x + y))
+
+    triplets_list = triplets.collect()
+
+    for c_id, N_vec in triplets_list:
+      
+      print(f"i = {c_id}, center = (", end = "")
+
+      print("%.6f" % C[c_id][0], end = "")
+
+      for i in range(1, len(C[c_id])):
+          print(",%.6f" % C[c_id][i], end = "")
+
+      print(f"), NA{c_id} = {N_vec[0]}, NB{c_id} = {N_vec[1]}")
+
     pass
 
 def parse_line(line):
