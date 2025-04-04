@@ -89,7 +89,7 @@ Triplets (c_i, NA_i, NB_i): respectively the i-th centroid in C, the number of p
                 .flatMap(point_count)
                 .reduceByKey(lambda x, y: x + y))
 
-    triplets_list = triplets.collect()
+    triplets_list = sorted(triplets.collect(), key=lambda x: x[0])
 
     for c_id, N_vec in triplets_list:
 
@@ -131,9 +131,10 @@ def main():
 
 
     vectors_rdd = points_rdd.map(lambda x: tuple(x[0]))
-    # model = KMeans.train(vectors_rdd, K, maxIterations=M)
-    # centroids = model.clusterCenters
-    centroids = [ # Centroids for example output 1
+    model = KMeans.train(vectors_rdd, K, maxIterations=M)
+    centroids = model.clusterCenters
+
+    '''centroids1 = [ # Centroids for example output 1
            np.array([40.750721,-73.980436]),
            np.array([40.724214,-74.193689]),
            np.array([40.779300,-73.428700]),
@@ -142,7 +143,7 @@ def main():
            np.array([40.749035,-73.984431]),
            np.array([40.873440,-74.192170]),
            np.array([40.693363,-74.178147]),
-           np.array([40.746095,-73.830627]), ]
+           np.array([40.746095,-73.830627]), ]'''
 
     delta = MRComputeStandardObjective(points_rdd, centroids)
     phi = MRComputeFairObjective(points_rdd, centroids)
