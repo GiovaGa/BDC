@@ -18,3 +18,28 @@ i = 0, center = (40.749035,-73.984431), NA0 = 725, NB0 = 192
 i = 2, center = (40.693363,-74.178147), NA2 = 19, NB2 = 11
 i = 3, center = (40.746095,-73.830627), NA3 = 31, NB3 = 24
 i = 1, center = (40.873440,-74.192170), NA1 = 7, NB1 = 3
+
+
+Risultato generico: 
+
+Setting default log level to "WARN".
+To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+25/04/04 15:12:11 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+======= OUTPUT FOR L = 1, K = 4, M = 20 =======
+
+Input file = uber_small.csv, L = 1, K = 4, M = 20
+N = 1012, NA = 782, NB = 230
+25/04/04 15:12:21 WARN InstanceBuilder: Failed to load implementation from:dev.ludovic.netlib.blas.JNIBLAS
+Delta(U,C) = 0.002043
+Phi(A,B,C) = 0.003014
+i = 0, center = (40.749840,-73.979822), NA0 = 744, NB0 = 209
+i = 1, center = (40.883640,-74.105490), NA1 = 8, NB1 = 2
+i = 2, center = (40.677176,-73.738735), NA2 = 10, NB2 = 7
+i = 3, center = (40.702791,-74.196569), NA3 = 20, NB3 = 12
+OPERAZIONE RIUSCITA: il processo con PID 20452 (processo figlio del
+PID 9448) � stato terminato.
+OPERAZIONE RIUSCITA: il processo con PID 9448 (processo figlio del
+PID 13984) � stato terminato.
+OPERAZIONE RIUSCITA: il processo con PID 13984 (processo figlio del
+PID 19428) � stato terminato.
+
