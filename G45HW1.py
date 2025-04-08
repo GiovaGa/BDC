@@ -44,7 +44,6 @@ float
     DeltaB = MRComputeStandardObjective(U.filter(lambda x : x[1] == 'B'), C)
     return max(DeltaA, DeltaB)
 
-# simpatine
 def point_count(list):
 
     clusters_dict = {}
@@ -92,7 +91,7 @@ Triplets (c_i, NA_i, NB_i): respectively the i-th centroid in C, the number of p
     triplets_list = triplets.collect()
 
     for c_id, N_vec in triplets_list:
-      
+
       print(f"i = {c_id}, center = (", end = "")
 
       print("%.6f" % C[c_id][0], end = "")
@@ -101,8 +100,6 @@ Triplets (c_i, NA_i, NB_i): respectively the i-th centroid in C, the number of p
           print(",%.6f" % C[c_id][i], end = "")
 
       print(f"), NA{c_id} = {N_vec[0]}, NB{c_id} = {N_vec[1]}")
-
-    pass
 
 def parse_line(line):
     parts = line.strip().split(',')
