@@ -50,18 +50,11 @@ def point_count(list):
     clusters_dict = {}
 
     for c_id, category in list[1]:
-
-        count = np.array([0,0])
+        if c_id not in clusters_dict: clusters_dict[c_id] = np.array([0,0])
         if category == 'A':
-          count[0] = 1
+          clusters_dict[c_id][0] += 1
         if category == 'B':
-          count[1] = 1
-
-        if c_id in clusters_dict:
-          clusters_dict[c_id] += count
-        else:
-          clusters_dict[c_id] = count
-
+          clusters_dict[c_id][1] += 1
 
     return clusters_dict.items()
 
