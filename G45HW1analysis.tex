@@ -1,0 +1,57 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{geometry}
+\usepackage{amsmath}
+\geometry{margin=5em}
+
+\usepackage{pythonhighlight}
+
+\title{Big Data Computing - Homework 1}
+\author{Group 45 - Gaio Giovanni, Grigolato Giordano, Moretti Simone}
+\date{}
+% \date{\today}
+
+
+\begin{document}
+\maketitle    
+% \section{MRComputeStandardObjective}
+% \section{MRComputeFairObjective}
+We implemented the function \textbf{MRPrintStatistics} as follows:
+\begin{python}
+def point_count(list):
+    clusters_dict = {}
+    for c_id, category in list[1]:
+        if c_id not in clusters_dict: clusters_dict[c_id] = np.array([0,0])
+        if category == 'A':
+          clusters_dict[c_id][0] += 1
+        if category == 'B':
+          clusters_dict[c_id][1] += 1
+    return clusters_dict.items()
+
+def MRPrintStatistics(U, C):
+    N = U.count()
+    L = int(np.sqrt(N))
+    triplets = (U.map(lambda x: (np.random.randint(0, L-1), (np.argmin([np.square(np.linalg.norm(np.array(x[0])-c)) for c in C]), x[1])))
+                 .groupByKey()
+                 .flatMap(point_count)
+                 .reduceByKey(lambda x, y: x + y))
+    triplets_list = triplets.collect()
+    for c_id, N_vec in triplets_list:
+        print(f"i = {c_id}, center = (", end = "")
+        print("%.6f" % C[c_id][0], end = "")
+        for i in range(1, len(C[c_id])):
+            print(",%.6f" % C[c_id][i], end = "")
+        print(f"), NA{c_id} = {N_vec[0]}, NB{c_id} = {N_vec[1]}")
+\end{python}
+The local space is expected to be asymptotically $M_L = \mathcal{O}(KN/L) = \mathcal{O}(K\sqrt{N})$, as $L = \sqrt{N}$ and where $N$ is the number of points in $U$.
+
+This result can be seen analyzing each operation on the Resilient Distributed Database:
+\begin{enumerate}
+    \item The RDD triplets is constructed by first finding for each point in $U$ its closest center, creating pairs of the type (closest\_center\_index, group).
+    This computation does not asymptotically impact the local space.
+    \item Each pair is then randomly shuffled into $L$ partitions. With high probability, the biggest of these is of size $\mathcal{O}(N/L) = \mathcal{O}(\sqrt{N})$.
+    \item For each partition we then count the number of points assigned to each center for the two groups $A$ and $B$. The resulting data structure for each partition has size $\mathcal{O}(K)$. As we assume $K \ll N$, this is asymptotically irrelevant.
+    \item Lastly we sum over all the partitions on a single node the number of points assigned to each of the $K$ centers. As the number of partitions is $L = \sqrt{N}$ the local space needed is $\mathcal{O}(K\sqrt{N})$.
+\end{enumerate}
+Finally the resulting RDD is collected locally to be displayed, but this is just a list of size $\mathcal{O}(K)$. So the maximum local size needed through the steps is $M_L = \mathcal{O}(K\sqrt{N})$.
+
+\end{document}
