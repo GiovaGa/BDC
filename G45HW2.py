@@ -44,6 +44,33 @@ float
     DeltaB = MRComputeStandardObjective(U.filter(lambda x : x[1] == 'B'), C)
     return max(DeltaA, DeltaB)
 
+def gather_partitions(pts):
+    """
+    pts: iterable of tuples i,x
+    where i int, x pair of int
+    """
+    # print(list(pts))
+    K = max([p[0] for p in pts]) + 1
+    cnt = np.zeros(K, np.int_)
+    ans = np.zeros((K,2))
+    for i,x in pts:
+        cnt[i] += 1
+        ans[i] += np.array(x[1])
+    return [(i,(cnt[i], ans[i])) for i in range(K)]
+
+def reduce_partitions(pts):
+    """
+    """
+
+    # print(list(pts))
+    cnt = int(0)
+    ans = np.zeros(2)
+    for s,x in pts:
+        cnt += s
+        ans += x
+    return [(cnt,ans)]
+
+
 def MRFairLloyd(U, K, M):
     """
 This function computes the fair K-means clustering cost function on a set of points U with centers C.
@@ -61,34 +88,46 @@ Returns
 -------
 list of the centers
     """
-    C = [np.array(p) for (p,c) in U.take(K)]
+    C = np.array([np.array(p) for (p,c) in U.takeSample(withReplacement=False,num=K,seed=69)])
 
-    UA = U.filter(lambda x : x[1] == 'A')
-    UB = U.filter(lambda x : x[1] == 'B')
-    countA = UA.count()
-    countB = UB.count()
+    UA = U.filter(lambda x : x[1] == 'A'); countA = UA.count()
+    UB = U.filter(lambda x : x[1] == 'B'); countB = UB.count()
+    a, Ma = np.zeros(K), np.zeros((K,2))
+    b, Mb = np.zeros(K), np.zeros((K,2))
 
     for i in range(M):
         T = 10; gamma = 0.5
         x = np.zeros(K)
         print("C:", C)
-        partitionsA = UA.map(lambda x : (np.argmin([np.square(np.array(x[0])-c).sum() for c in C]),x[0])).groupByKey()
-        a = np.array(partitionsA.map(lambda p : len(p)/countA).collect())
-        muA = np.array(partitionsA.mapValues(lambda p : np.array(list(p)).mean(axis=0)).sortByKey().map(lambda x : x[1]).collect())
-        # print("muA:", muA)
+        ret = UA.mapPartitions(lambda p : gather_partitions([(np.argmin([np.square(np.array(x[0])-c).sum() for c in C]), x[0]) for x in p])) \
+                .groupByKey() \
+                .mapValues(reduce_partitions) \
+                .collect()
+        print(ret)
+        for i,[(ai,mui)] in ret: a[i] = ai; Ma[i] = mui/ai
+        a /= countA
+        # print("a:", a)
+        # print("Ma:", Ma)
 
-        partitionsB = UB.map(lambda x : (np.argmin([np.square(np.array(x[0])-c).sum() for c in C]),x[0])).groupByKey()
-        b = np.array(partitionsB.map(lambda p : len(p)/countB).collect())
-        muB = np.array(partitionsB.mapValues(lambda p : np.array(list(p)).mean(axis=0)).sortByKey().map(lambda x : x[1]).collect())
-        # print("muB:", muB)
-        l = np.linalg.norm(muA-muB,axis=1)
+        ret = UB.mapPartitions(lambda p : gather_partitions([(np.argmin([np.square(np.array(x[0])-c).sum() for c in C]),x[0]) for x in p])) \
+                .groupByKey() \
+                .mapValues(reduce_partitions) \
+                .collect()
+        for i,[(bi,mui)] in ret: b[i] = bi; Mb[i] = mui/bi
+        b /= countB
+        print("b:", b)
+        print("Mb:", Mb)
+        l = np.linalg.norm(Ma-Mb,axis=1)
         # print("l:", l)
+
+        DeltaA = MRComputeStandardObjective(UA, x)/countA
+        DeltaB = MRComputeStandardObjective(UB, x)/countB
         for t in range(T):
             x = ((1-gamma)*b*l)/(gamma*a+(1-gamma)*b)
-            FA = MRComputeStandardObjective(UA, x)
-            FB = MRComputeStandardObjective(UB, x)
+            FA = DeltaA + np.dot(a,np.square(x))
+            FB = DeltaB +np.dot(b,np.square(l-x))
             gamma += (1 if FA > FB else -1)*(0.5)**(-t-2)
-        C = ((l-x)[:,np.newaxis]*muA + x[:,np.newaxis]*muB)/l[:,np.newaxis]
+        C = ((l-x)[:,np.newaxis]*Ma + x[:,np.newaxis]*Mb)/l[:,np.newaxis]
     return C
 
 
