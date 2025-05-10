@@ -55,7 +55,7 @@ def gather_partitions(pts):
     ans = np.zeros((K,2))
     for i,x in pts:
         cnt[i] += 1
-        ans[i] += np.array(x[1])
+        ans[i] += np.array(x)
     return [(i,(cnt[i], ans[i])) for i in range(K)]
 
 def reduce_partitions(pts):
@@ -98,36 +98,39 @@ list of the centers
     for i in range(M):
         T = 10; gamma = 0.5
         x = np.zeros(K)
-        print("C:", C)
+
         ret = UA.mapPartitions(lambda p : gather_partitions([(np.argmin([np.square(np.array(x[0])-c).sum() for c in C]), x[0]) for x in p])) \
                 .groupByKey() \
                 .mapValues(reduce_partitions) \
                 .collect()
-        print(ret)
-        for i,[(ai,mui)] in ret: a[i] = ai; Ma[i] = mui/ai
+        for i,[(ai,mui)] in ret:
+            a[i] = ai
+            if ai > 0: Ma[i] = mui/ai
         a /= countA
-        # print("a:", a)
-        # print("Ma:", Ma)
 
         ret = UB.mapPartitions(lambda p : gather_partitions([(np.argmin([np.square(np.array(x[0])-c).sum() for c in C]),x[0]) for x in p])) \
                 .groupByKey() \
                 .mapValues(reduce_partitions) \
                 .collect()
-        for i,[(bi,mui)] in ret: b[i] = bi; Mb[i] = mui/bi
+        for i,[(bi,mui)] in ret:
+            b[i] = bi
+            if bi > 0: Mb[i] = mui/bi
         b /= countB
-        print("b:", b)
-        print("Mb:", Mb)
+
+        Ma[a == 0] = Mb[a == 0]
+        Mb[b == 0] = Ma[b == 0]
+
         l = np.linalg.norm(Ma-Mb,axis=1)
-        # print("l:", l)
+        neqAB = l > 0 # select clusters containing both A and B points
 
         DeltaA = MRComputeStandardObjective(UA, x)/countA
         DeltaB = MRComputeStandardObjective(UB, x)/countB
         for t in range(T):
-            x = ((1-gamma)*b*l)/(gamma*a+(1-gamma)*b)
-            FA = DeltaA + np.dot(a,np.square(x))
-            FB = DeltaB +np.dot(b,np.square(l-x))
+            x = ((1-gamma)*b[neqAB]*l[neqAB])/(gamma*a[neqAB] + (1-gamma)*b[neqAB])
+            FA = DeltaA + np.dot(a[neqAB],np.square(x))
+            FB = DeltaB + np.dot(b[neqAB],np.square(l[neqAB]-x))
             gamma += (1 if FA > FB else -1)*(0.5)**(-t-2)
-        C = ((l-x)[:,np.newaxis]*Ma + x[:,np.newaxis]*Mb)/l[:,np.newaxis]
+        C = ((l[neqAB]-x)[:,np.newaxis]*Ma[neqAB] + x[:,np.newaxis]*Mb[neqAB])/l[neqAB,np.newaxis]
     return C
 
 
