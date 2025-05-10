@@ -55,7 +55,7 @@ def gather_partitions(pts):
     ans = np.zeros((K,2))
     for i,x in pts:
         cnt[i] += 1
-        ans[i] += np.array(x[1])
+        ans[i] += np.array(x)
     return [(i,(cnt[i], ans[i])) for i in range(K)]
 
 def reduce_partitions(pts):
@@ -98,12 +98,12 @@ list of the centers
     for i in range(M):
         T = 10; gamma = 0.5
         x = np.zeros(K)
-        print("C:", C)
+        # print("C:", C)
         ret = UA.mapPartitions(lambda p : gather_partitions([(np.argmin([np.square(np.array(x[0])-c).sum() for c in C]), x[0]) for x in p])) \
                 .groupByKey() \
                 .mapValues(reduce_partitions) \
                 .collect()
-        print(ret)
+        # print(ret)
         for i,[(ai,mui)] in ret: a[i] = ai; Ma[i] = mui/ai
         a /= countA
         # print("a:", a)
@@ -115,8 +115,8 @@ list of the centers
                 .collect()
         for i,[(bi,mui)] in ret: b[i] = bi; Mb[i] = mui/bi
         b /= countB
-        print("b:", b)
-        print("Mb:", Mb)
+        # print("b:", b)
+        # print("Mb:", Mb)
         l = np.linalg.norm(Ma-Mb,axis=1)
         # print("l:", l)
 
