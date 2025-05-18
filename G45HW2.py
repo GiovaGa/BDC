@@ -3,6 +3,7 @@ import time
 from pyspark import SparkContext, SparkConf
 from pyspark.mllib.clustering import KMeans
 import numpy as np
+from computeVectorX import computeVectorX
 
 
 def MRComputeStandardObjective(U, C):
@@ -97,11 +98,9 @@ def MRFairLloyd(U, K, M):
     UB = U.filter(lambda x : x[1] == 'B'); countB = UB.count()
     a, Ma = np.zeros(K), np.zeros((K,2))
     b, Mb = np.zeros(K), np.zeros((K,2))
+    T = 10; gamma = 0.5
 
     for i in range(M):
-        T = 10; gamma = 0.5
-        x = np.zeros(K)
-
         ret = UA.mapPartitions(lambda p : gather_partitions([(np.argmin([np.square(np.array(x[0])-c).sum() for c in C]), x[0]) for x in p])) \
                 .groupByKey() \
                 .mapValues(reduce_partitions) \
@@ -124,19 +123,14 @@ def MRFairLloyd(U, K, M):
         Mb[b == 0] = Ma[b == 0]
 
         l = np.linalg.norm(Ma-Mb,axis=1)
-        neqAB = l > 0 # select clusters containing both A and B points
 
-        DeltaA = MRComputeStandardObjective(UA, x)/countA
-        DeltaB = MRComputeStandardObjective(UB, x)/countB
-        for t in range(T):
-            x = ((1-gamma)*b[neqAB]*l[neqAB])/(gamma*a[neqAB] + (1-gamma)*b[neqAB])
-            FA = DeltaA + np.dot(a[neqAB],np.square(x))
-            FB = DeltaB + np.dot(b[neqAB],np.square(l[neqAB]-x))
-            gamma += (1 if FA > FB else -1)*(0.5)**(-t-2)
-        C = ((l[neqAB]-x)[:,np.newaxis]*Ma[neqAB] + x[:,np.newaxis]*Mb[neqAB])/l[neqAB,np.newaxis]
+        fixed_a = MRComputeStandardObjective(UA, Ma)/countA
+        fixed_b = MRComputeStandardObjective(UB, Mb)/countB
+
+        x = computeVectorX(fixed_a,fixed_b,a,b,l,K)
+
+        C = [((l[i]-x[i])*Ma[i] + x[i]*Mb[i])/l[i] if l[i] > 0 else Ma[i] for i in range(K) ]
     return C
-
-
 
 
 def parse_line(line):
