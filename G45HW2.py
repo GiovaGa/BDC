@@ -118,7 +118,6 @@ def MRFairLloyd(U, K, M):
             b[i] = bi
             if bi > 0: Mb[i] = mui/bi
         b /= countB
-
         Ma[a == 0] = Mb[a == 0]
         Mb[b == 0] = Ma[b == 0]
 
