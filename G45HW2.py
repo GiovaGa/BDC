@@ -1,44 +1,46 @@
 import sys
+import time
 from pyspark import SparkContext, SparkConf
 from pyspark.mllib.clustering import KMeans
 import numpy as np
 
-# giova
+
 def MRComputeStandardObjective(U, C):
     """
-This function computes the standard K-means clustering cost function on a set of points U with centers C.
+    This function computes the standard K-means clustering cost function on a set of points U with centers C.
 
-Parameters
-----------
-U : pyspark.RDD
-    The set of data points as (pos, category) where pos is a vector and category is either "A" or "B".
-C : iterable
-    The centers
+    Parameters
+    ----------
+    U : pyspark.RDD
+        The set of data points as (pos, category) where pos is a vector and category is either "A" or "B".
+    C : iterable
+        The centers
 
-Returns
--------
-float
-    The value of the cost function
+    Returns
+    -------
+    float
+        The value of the cost function
     """
 
     d = U.map(lambda x : np.min([np.square(np.array(x[0])-c).sum() for c in C]))
     return d.mean()
 
+
 def MRComputeFairObjective(U, C):
     """
-This function computes the fair K-means clustering cost function on a set of points U with centers C.
+    This function computes the fair K-means clustering cost function on a set of points U with centers C.
 
-Parameters
-----------
-U : pyspark.RDD
-    The set of data points as (pos, category) where pos is a vector and category is either "A" or "B".
-C : iterable
-    The centers
+    Parameters
+    ----------
+    U : pyspark.RDD
+        The set of data points as (pos, category) where pos is a vector and category is either "A" or "B".
+    C : iterable
+        The centers
 
-Returns
--------
-float
-    The value of the fair cost function
+    Returns
+    -------
+    float
+        The value of the fair cost function
     """
     DeltaA = MRComputeStandardObjective(U.filter(lambda x : x[1] == 'A'), C)
     DeltaB = MRComputeStandardObjective(U.filter(lambda x : x[1] == 'B'), C)
@@ -73,20 +75,21 @@ def reduce_partitions(pts):
 
 def MRFairLloyd(U, K, M):
     """
-This function computes the fair K-means clustering cost function on a set of points U with centers C.
+    Implements the Fair K-Means Clustering algorithm.
 
-Parameters
-----------
-U : pyspark.RDD
-    The set of data points as (pos, category) where pos is a vector and category is either "A" or "B".
-K : int
-    The number of centers to be computed
-M : int
-    The number of iterations to be run of the algorithm
+    Parameters
+    ----------
+    points_rdd : pyspark.RDD
+        The set of data points as (pos, category) where pos is a vector and category is either "A" or "B".
+    k : int
+        Number of clusters
+    m : int
+        Number of iterations
 
-Returns
--------
-list of the centers
+    Returns
+    -------
+    list
+        Final set of centroids
     """
     C = np.array([np.array(p) for (p,c) in U.takeSample(withReplacement=False,num=K,seed=69)])
 
@@ -142,40 +145,62 @@ def parse_line(line):
     group = parts[-1]
     return (point, group)
 
+
 def main():
     if len(sys.argv) != 5:
-        print("Usage: G45HW1.py <file_path> <L> <K> <M>")
+        print("Usage: G45HW2.py <file_path> <L> <K> <M>")
         sys.exit(1)
 
     file_path, L, K, M = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])
 
-    sc = SparkContext(appName="FairKMeans")
+    # Initialize Spark context
+    conf = SparkConf().setAppName("FairKMeans")
+    sc = SparkContext(conf=conf)
 
+    # Print command-line arguments
+    print(f"Input file = {file_path}, L = {L}, K = {K}, M = {M}")
+
+    # Read input points into an RDD with L partitions
     points_rdd = sc.textFile(file_path, minPartitions=L).map(parse_line).cache()
 
+    # Print points statistics
     N = points_rdd.count()
     NA = points_rdd.filter(lambda x: x[1] == 'A').count()
     NB = points_rdd.filter(lambda x: x[1] == 'B').count()
-
-    print(f"======= OUTPUT FOR L = {L}, K = {K}, M = {M} =======")
-    print(f"\nInput file = {file_path}, L = {L}, K = {K}, M = {M}")
     print(f"N = {N}, NA = {NA}, NB = {NB}")
 
-    vectors_rdd = points_rdd.map(lambda x: tuple(x[0]))
+    # Compute standard Lloyd's centroids
+    start_time = time.time()
+    vectors_rdd = points_rdd.map(lambda x: x[0])
     model = KMeans.train(vectors_rdd, K, maxIterations=M)
-    centroids = model.clusterCenters
+    standard_centroids = model.clusterCenters
+    standard_time = int((time.time() - start_time) * 1000)  # Convert to milliseconds
 
+    # Compute fair Lloyd's centroids
+    start_time = time.time()
     fair_centroids = MRFairLloyd(points_rdd, K, M)
+    fair_time = int((time.time() - start_time) * 1000)  # Convert to milliseconds
 
-    delta = MRComputeStandardObjective(points_rdd, centroids)
-    phi = MRComputeFairObjective(points_rdd, centroids)
+    # Compute objective functions
+    start_time = time.time()
+    standard_obj = MRComputeFairObjective(points_rdd, standard_centroids)
+    standard_obj_time = int((time.time() - start_time) * 1000)  # Convert to milliseconds
 
-    print(f"Delta(U,C) = {delta:.6f}")
-    print(f"Phi(A,B,C) = {phi:.6f}")
+    start_time = time.time()
+    fair_obj = MRComputeFairObjective(points_rdd, fair_centroids)
+    fair_obj_time = int((time.time() - start_time) * 1000)  # Convert to milliseconds
 
-    # MRPrintStatistics(points_rdd, centroids)
+    # Print results in the exact format required
+    print(f"Fair Objective with Standard Centers = {standard_obj:.4f}")
+    print(f"Fair Objective with Fair Centers = {fair_obj:.4f}")
+    print(f"Time to compute standard centers = {standard_time} ms")
+    print(f"Time to compute fair centers = {fair_time} ms")
+    print(f"Time to compute objective with standard centers = {standard_obj_time} ms")
+    print(f"Time to compute objective with fair centers = {fair_obj_time} ms")
 
     sc.stop()
 
+
 if __name__ == "__main__":
     main()
+
