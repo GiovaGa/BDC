@@ -50,12 +50,13 @@ def MRComputeFairObjective(U, C):
 def gather_partitions(pts):
     """
     pts: iterable of tuples i,x
-    where i int, x pair of int
+    where i int, x point
     """
     # print(list(pts))
+    dim = len(pts[0][1])
     K = max([p[0] for p in pts]) + 1
     cnt = np.zeros(K, np.int_)
-    ans = np.zeros((K,2))
+    ans = np.zeros((K,dim))
     for i,x in pts:
         cnt[i] += 1
         ans[i] += np.array(x)
@@ -64,10 +65,10 @@ def gather_partitions(pts):
 def reduce_partitions(pts):
     """
     """
-
+    dim = len(pts[0][1])
     # print(list(pts))
     cnt = int(0)
-    ans = np.zeros(2)
+    ans = np.zeros(dim)
     for s,x in pts:
         cnt += s
         ans += x
@@ -96,8 +97,10 @@ def MRFairLloyd(U, K, M):
 
     UA = U.filter(lambda x : x[1] == 'A'); countA = UA.count()
     UB = U.filter(lambda x : x[1] == 'B'); countB = UB.count()
-    a, Ma = np.zeros(K), np.zeros((K,2))
-    b, Mb = np.zeros(K), np.zeros((K,2))
+
+    dim = len(C[0]) # number of dimensions of the points
+    a, Ma = np.zeros(K), np.zeros((K,dim))
+    b, Mb = np.zeros(K), np.zeros((K,dim))
     T = 10; gamma = 0.5
 
     for i in range(M):
