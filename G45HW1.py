@@ -44,23 +44,17 @@ float
     DeltaB = MRComputeStandardObjective(U.filter(lambda x : x[1] == 'B'), C)
     return max(DeltaA, DeltaB)
 
+# simpatine
 def point_count(list):
 
     clusters_dict = {}
 
     for c_id, category in list[1]:
-
-        count = np.array([0,0])
+        if c_id not in clusters_dict: clusters_dict[c_id] = np.array([0,0])
         if category == 'A':
-          count[0] = 1
+          clusters_dict[c_id][0] += 1
         if category == 'B':
-          count[1] = 1
-
-        if c_id in clusters_dict:
-          clusters_dict[c_id] += count
-        else:
-          clusters_dict[c_id] = count
-
+          clusters_dict[c_id][1] += 1
 
     return clusters_dict.items()
 
@@ -88,7 +82,7 @@ Triplets (c_i, NA_i, NB_i): respectively the i-th centroid in C, the number of p
                 .flatMap(point_count)
                 .reduceByKey(lambda x, y: x + y))
 
-    triplets_list = triplets.collect()
+    triplets_list = sorted(triplets.collect(), key=lambda x: x[0])
 
     for c_id, N_vec in triplets_list:
 
@@ -100,6 +94,8 @@ Triplets (c_i, NA_i, NB_i): respectively the i-th centroid in C, the number of p
           print(",%.6f" % C[c_id][i], end = "")
 
       print(f"), NA{c_id} = {N_vec[0]}, NB{c_id} = {N_vec[1]}")
+
+    pass
 
 def parse_line(line):
     parts = line.strip().split(',')
@@ -130,6 +126,17 @@ def main():
     vectors_rdd = points_rdd.map(lambda x: tuple(x[0]))
     model = KMeans.train(vectors_rdd, K, maxIterations=M)
     centroids = model.clusterCenters
+
+    '''centroids1 = [ # Centroids for example output 1
+           np.array([40.750721,-73.980436]),
+           np.array([40.724214,-74.193689]),
+           np.array([40.779300,-73.428700]),
+           np.array([40.663394,-73.786612]), ]
+    centroids = [ # Centroids for example output 2
+           np.array([40.749035,-73.984431]),
+           np.array([40.873440,-74.192170]),
+           np.array([40.693363,-74.178147]),
+           np.array([40.746095,-73.830627]), ]'''
 
     delta = MRComputeStandardObjective(points_rdd, centroids)
     phi = MRComputeFairObjective(points_rdd, centroids)
