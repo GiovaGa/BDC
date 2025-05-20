@@ -87,7 +87,7 @@ def MRFairLloyd(U, K, M):
 
     Parameters
     ----------
-    points_rdd : pyspark.RDD
+    U : pyspark.RDD
         The set of data points as (pos, category) where pos is a vector and category is either "A" or "B".
     k : int
         Number of clusters
@@ -99,7 +99,9 @@ def MRFairLloyd(U, K, M):
     list
         Final set of centroids
     """
-    C = np.array([np.array(p) for (p,c) in U.takeSample(withReplacement=False,num=K,seed=69)])
+    vectors_rdd = U.map(lambda x: x[0])
+    model = KMeans.train(vectors_rdd, K, maxIterations=0)
+    C = model.clusterCenters
 
     UA = U.filter(lambda x : x[1] == 'A'); countA = UA.count()
     UB = U.filter(lambda x : x[1] == 'B'); countB = UB.count()
@@ -180,7 +182,7 @@ def main():
 
     # Compute fair Lloyd's centroids
     start_time = time.time()
-    fair_centroids = MRFairLloyd(points_rdd, K, M)
+    fair_centroids = MRFairLloyd(points_rdd, K, M, standard_centroids)
     fair_time = int((time.time() - start_time) * 1000)  # Convert to milliseconds
 
     # Compute objective functions
