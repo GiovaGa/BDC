@@ -53,7 +53,10 @@ def gather_partitions(pts):
     where i int, x point
     """
     # print(list(pts))
-    dim = len(pts[0][1])
+    if len(list(pts)) == 0:
+      return []
+
+    dim = len(list(pts)[0][1])
     K = max([p[0] for p in pts]) + 1
     cnt = np.zeros(K, np.int_)
     ans = np.zeros((K,dim))
@@ -65,8 +68,11 @@ def gather_partitions(pts):
 def reduce_partitions(pts):
     """
     """
-    dim = len(pts[0][1])
     # print(list(pts))
+    if len(list(pts)) == 0:
+      return []
+
+    dim = len(list(pts)[0][1])
     cnt = int(0)
     ans = np.zeros(dim)
     for s,x in pts:
