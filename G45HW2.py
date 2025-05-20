@@ -182,7 +182,7 @@ def main():
 
     # Compute fair Lloyd's centroids
     start_time = time.time()
-    fair_centroids = MRFairLloyd(points_rdd, K, M, standard_centroids)
+    fair_centroids = MRFairLloyd(points_rdd, K, M)
     fair_time = int((time.time() - start_time) * 1000)  # Convert to milliseconds
 
     # Compute objective functions
