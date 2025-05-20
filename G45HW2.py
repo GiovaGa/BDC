@@ -50,12 +50,16 @@ def MRComputeFairObjective(U, C):
 def gather_partitions(pts):
     """
     pts: iterable of tuples i,x
-    where i int, x pair of int
+    where i int, x point
     """
     # print(list(pts))
+    if len(list(pts)) == 0:
+      return []
+
+    dim = len(list(pts)[0][1])
     K = max([p[0] for p in pts]) + 1
     cnt = np.zeros(K, np.int_)
-    ans = np.zeros((K,2))
+    ans = np.zeros((K,dim))
     for i,x in pts:
         cnt[i] += 1
         ans[i] += np.array(x)
@@ -64,10 +68,13 @@ def gather_partitions(pts):
 def reduce_partitions(pts):
     """
     """
-
     # print(list(pts))
+    if len(list(pts)) == 0:
+      return []
+
+    dim = len(list(pts)[0][1])
     cnt = int(0)
-    ans = np.zeros(2)
+    ans = np.zeros(dim)
     for s,x in pts:
         cnt += s
         ans += x
@@ -80,7 +87,7 @@ def MRFairLloyd(U, K, M):
 
     Parameters
     ----------
-    points_rdd : pyspark.RDD
+    U : pyspark.RDD
         The set of data points as (pos, category) where pos is a vector and category is either "A" or "B".
     k : int
         Number of clusters
@@ -92,12 +99,16 @@ def MRFairLloyd(U, K, M):
     list
         Final set of centroids
     """
-    C = np.array([np.array(p) for (p,c) in U.takeSample(withReplacement=False,num=K,seed=69)])
+    vectors_rdd = U.map(lambda x: x[0])
+    model = KMeans.train(vectors_rdd, K, maxIterations=0)
+    C = model.clusterCenters
 
     UA = U.filter(lambda x : x[1] == 'A'); countA = UA.count()
     UB = U.filter(lambda x : x[1] == 'B'); countB = UB.count()
-    a, Ma = np.zeros(K), np.zeros((K,2))
-    b, Mb = np.zeros(K), np.zeros((K,2))
+
+    dim = len(C[0]) # number of dimensions of the points
+    a, Ma = np.zeros(K), np.zeros((K,dim))
+    b, Mb = np.zeros(K), np.zeros((K,dim))
     T = 10; gamma = 0.5
 
     for i in range(M):
