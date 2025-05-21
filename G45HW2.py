@@ -103,8 +103,8 @@ def MRFairLloyd(U, K, M):
     model = KMeans.train(vectors_rdd, K, maxIterations=0)
     C = model.clusterCenters
 
-    UA = U.filter(lambda x : x[1] == 'A'); countA = UA.count()
-    UB = U.filter(lambda x : x[1] == 'B'); countB = UB.count()
+    UA = U.filter(lambda x : x[1] == 'A').cache(); countA = UA.count()
+    UB = U.filter(lambda x : x[1] == 'B').cache(); countB = UB.count()
 
     dim = len(C[0]) # number of dimensions of the points
     a, Ma = np.zeros(K), np.zeros((K,dim))
