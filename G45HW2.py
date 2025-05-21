@@ -112,18 +112,20 @@ def MRFairLloyd(U, K, M):
     T = 10; gamma = 0.5
 
     for i in range(M):
-        ret = UA.mapPartitions(lambda p : gather_partitions([(np.argmin([np.square(np.array(x[0])-c).sum() for c in C]), x[0]) for x in p])) \
+        # print(C)
+        ret = UA.map(lambda x : (np.argmin([np.square(np.array(x[0])-c).sum() for c in C]), x[0])) \
                 .groupByKey() \
-                .mapValues(reduce_partitions) \
+                .mapValues(lambda p : [(len(p), np.array(list(p)).sum(axis=0))]) \
                 .collect()
+        # print(ret)
         for i,[(ai,mui)] in ret:
             a[i] = ai
             if ai > 0: Ma[i] = mui/ai
         a /= countA
 
-        ret = UB.mapPartitions(lambda p : gather_partitions([(np.argmin([np.square(np.array(x[0])-c).sum() for c in C]),x[0]) for x in p])) \
+        ret = UA.map(lambda x : (np.argmin([np.square(np.array(x[0])-c).sum() for c in C]), x[0])) \
                 .groupByKey() \
-                .mapValues(reduce_partitions) \
+                .mapValues(lambda p : [(len(p), np.array(list(p)).sum(axis=0))]) \
                 .collect()
         for i,[(bi,mui)] in ret:
             b[i] = bi
