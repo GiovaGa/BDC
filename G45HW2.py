@@ -23,7 +23,7 @@ def MRComputeStandardObjective(U, C):
         The value of the cost function
     """
 
-    d = U.map(lambda x : min([(x[0][0]-c[0])*(x[0][0]-c[0])+(x[0][1]-c[1])*(x[0][1]-c[1]) for c in C]))
+    d = U.map(lambda x : min([(x[0][0]-c[0])*(x[0][0]-c[0]) + (x[0][1]-c[1])*(x[0][1]-c[1]) for c in C]))
     return d.mean()
 
 
