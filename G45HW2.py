@@ -46,38 +46,34 @@ def MRComputeFairObjective(U, C):
     DeltaB = MRComputeStandardObjective(U.filter(lambda x : x[1] == 'B'), C)
     return max(DeltaA, DeltaB)
 
-def gather_partitions(pts):
-    """
-    pts: iterable of tuples i,x
-    where i int, x point
-    """
-    # print(list(pts))
-    if len(list(pts)) == 0:
-      return []
 
-    dim = len(list(pts)[0][1])
-    K = max([p[0] for p in pts]) + 1
-    cnt = [0]*K
-    ans = np.zeros((K,dim))
-    for i,x in pts:
-        cnt[i] += 1
-        ans[i] += np.array(x)
-    return [(i,(cnt[i], ans[i])) for i in range(K)]
+def get_gather_partitions(K,dim,C):
+    def gather_partitions(pts):
+        """
+        pts: iterable of tuples i,x
+        where i int, x point
+        """
+        cnt = np.zeros(K)
+        ans = np.zeros((K,dim))
+        for x,_ in pts:
+            i = np.argmin([np.square(np.array(x)-c).sum() for c in C])
+            cnt[i] += 1
+            ans[i] += np.array(x)
+        return [(i,(cnt[i], ans[i])) for i in range(K)]
+    return gather_partitions
 
-def reduce_partitions(pts):
-    """
-    """
-    # print(list(pts))
-    if len(list(pts)) == 0:
-      return []
-
-    dim = len(list(pts)[0][1])
-    cnt = int(0)
-    ans = [0]*dim
-    for s,x in pts:
-        cnt += s
-        ans += x
-    return [(cnt,ans)]
+def get_reduce_partitions(K,dim):
+    def reduce_partitions(pts):
+        """
+        """
+        cnt = int(0)
+        ans = np.zeros(dim)
+        for s,x in pts:
+            cnt += s
+            ans += x
+        if cnt > 0: return [(cnt,ans/cnt)]
+        else: return [(cnt,ans)]
+    return reduce_partitions
 
 
 def MRFairLloyd(U, K, M):
@@ -102,8 +98,9 @@ def MRFairLloyd(U, K, M):
     model = KMeans.train(vectors_rdd, K, maxIterations=0)
     C = model.clusterCenters
 
-    UA = U.filter(lambda x : x[1] == 'A').cache(); countA = UA.count()
-    UB = U.filter(lambda x : x[1] == 'B').cache(); countB = UB.count()
+    L = U.getNumPartitions()
+    UA = U.filter(lambda x : x[1] == 'A').repartition(L).cache(); countA = UA.count()
+    UB = U.filter(lambda x : x[1] == 'B').repartition(L).cache(); countB = UB.count()
 
     dim = len(C[0]) # number of dimensions of the points
     a, Ma = np.zeros(K), np.zeros((K,dim))
@@ -111,22 +108,22 @@ def MRFairLloyd(U, K, M):
     T = 10; gamma = 0.5
 
     for i in range(M):
-        ret = UA.mapPartitions(lambda p : gather_partitions([(np.argmin([np.square(np.array(x[0])-c).sum() for c in C]), x[0]) for x in p])) \
+        ret = UA.mapPartitions(get_gather_partitions(K,dim,C)) \
                 .groupByKey() \
-                .mapValues(reduce_partitions) \
+                .mapValues(get_reduce_partitions(K,dim)) \
                 .collect()
         for i,[(ai,mui)] in ret:
             a[i] = ai
-            if ai > 0: Ma[i] = mui/ai
+            Ma[i] = mui
         a /= countA
 
-        ret = UB.mapPartitions(lambda p : gather_partitions([(np.argmin([np.square(np.array(x[0])-c).sum() for c in C]),x[0]) for x in p])) \
+        ret = UB.mapPartitions(get_gather_partitions(K,dim,C)) \
                 .groupByKey() \
-                .mapValues(reduce_partitions) \
+                .mapValues(get_reduce_partitions(K,dim)) \
                 .collect()
         for i,[(bi,mui)] in ret:
             b[i] = bi
-            if bi > 0: Mb[i] = mui/bi
+            Mb[i] = mui
         b /= countB
         Ma[a == 0] = Mb[a == 0]
         Mb[b == 0] = Ma[b == 0]
@@ -138,7 +135,9 @@ def MRFairLloyd(U, K, M):
 
         x = computeVectorX(fixed_a,fixed_b,a,b,l,K)
 
-        C = [((l[i]-x[i])*Ma[i] + x[i]*Mb[i])/l[i] if l[i] > 0 else Ma[i] for i in range(K) ]
+        ids = l >= 0
+        C = ((l[ids,np.newaxis]-x[ids,np.newaxis])*Ma[ids] + x[ids,np.newaxis]*Mb[ids])/l[ids,np.newaxis]
+        C[~ids] = Ma[~ids]
     return C
 
 
