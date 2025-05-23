@@ -23,8 +23,7 @@ def MRComputeStandardObjective(U, C):
         The value of the cost function
     """
 
-    d = U.map(lambda x : min([(x[0][0]-c[0])*(x[0][0]-c[0]) + (x[0][1]-c[1])*(x[0][1]-c[1]) for c in C]))
-    return d.mean()
+    return U.map(lambda x : min([sum([(xi-ci)**2 for xi,ci in zip(x[0],c)]) for c in C])).mean()
 
 
 def MRComputeFairObjective(U, C):
@@ -56,9 +55,9 @@ def gather_partitions(pts):
     if len(list(pts)) == 0:
       return []
 
-    dim = len(list(pts)[0][1])
+    dim = 2
     K = max([p[0] for p in pts]) + 1
-    cnt = np.zeros(K, np.int_)
+    cnt = [0]*K
     ans = np.zeros((K,dim))
     for i,x in pts:
         cnt[i] += 1
@@ -72,9 +71,9 @@ def reduce_partitions(pts):
     if len(list(pts)) == 0:
       return []
 
-    dim = len(list(pts)[0][1])
+    dim = 2
     cnt = int(0)
-    ans = np.zeros(dim)
+    ans = [0]*dim
     for s,x in pts:
         cnt += s
         ans += x
