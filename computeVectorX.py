@@ -1,6 +1,8 @@
+import numpy as np
+
 def computeVectorX(fixed_a, fixed_b, alpha, beta, ell, k):
     gamma = 0.5
-    x_dist = [0.0] * k
+    x_dist = np.zeros(k)
     power = 0.5
     t_max = 10
 
@@ -9,12 +11,11 @@ def computeVectorX(fixed_a, fixed_b, alpha, beta, ell, k):
         f_b = fixed_b
         power /= 2
 
-        for i in range(k):
-            temp = (1 - gamma) * beta[i] * ell[i] / (gamma * alpha[i] + (1 - gamma) * beta[i])
-            x_dist[i] = temp
-            f_a += alpha[i] * temp * temp
-            temp = ell[i] - temp
-            f_b += beta[i] * temp * temp
+        temp = (1 - gamma) * beta * ell / (gamma * alpha + (1 - gamma) * beta)
+        x_dist = temp
+        f_a += np.sum(alpha * temp * temp)
+        temp = ell - temp
+        f_b += np.sum(beta * temp * temp)
 
         if f_a == f_b:
             break

@@ -23,8 +23,7 @@ def MRComputeStandardObjective(U, C):
         The value of the cost function
     """
 
-    d = U.map(lambda x : np.min([np.square(np.array(x[0])-c).sum() for c in C]))
-    return d.mean()
+    return U.map(lambda x : min([sum([(xi-ci)**2 for xi,ci in zip(x[0],c)]) for c in C])).mean()
 
 
 def MRComputeFairObjective(U, C):
@@ -58,7 +57,7 @@ def gather_partitions(pts):
 
     dim = len(list(pts)[0][1])
     K = max([p[0] for p in pts]) + 1
-    cnt = np.zeros(K, np.int_)
+    cnt = [0]*K
     ans = np.zeros((K,dim))
     for i,x in pts:
         cnt[i] += 1
@@ -74,7 +73,7 @@ def reduce_partitions(pts):
 
     dim = len(list(pts)[0][1])
     cnt = int(0)
-    ans = np.zeros(dim)
+    ans = [0]*dim
     for s,x in pts:
         cnt += s
         ans += x
@@ -103,8 +102,8 @@ def MRFairLloyd(U, K, M):
     model = KMeans.train(vectors_rdd, K, maxIterations=0)
     C = model.clusterCenters
 
-    UA = U.filter(lambda x : x[1] == 'A'); countA = UA.count()
-    UB = U.filter(lambda x : x[1] == 'B'); countB = UB.count()
+    UA = U.filter(lambda x : x[1] == 'A').cache(); countA = UA.count()
+    UB = U.filter(lambda x : x[1] == 'B').cache(); countB = UB.count()
 
     dim = len(C[0]) # number of dimensions of the points
     a, Ma = np.zeros(K), np.zeros((K,dim))

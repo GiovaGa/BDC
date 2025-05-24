@@ -21,7 +21,7 @@ float
     The value of the cost function
     """
 
-    d = U.map(lambda x : np.min([np.square(np.array(x[0])-c).sum() for c in C]))
+    d = U.map(lambda x : min([(x[0][0]-c[0])*(x[0][0]-c[0]) + (x[0][1]-c[1])*(x[0][1]-c[1]) for c in C]))
     return d.mean()
 
 def MRComputeFairObjective(U, C):
