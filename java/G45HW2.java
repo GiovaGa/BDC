@@ -15,29 +15,6 @@ import scala.Tuple2;
 
 public class G45HW2 {
 
-    public static double[] computeVectorX(double fixedA, double fixedB, double[] alpha, double[] beta, double[] ell, int K) {
-        double gamma = 0.5;
-        double[] xDist = new double[K];
-        double fA, fB;
-        double power = 0.5;
-        int T = 10;
-        for (int t=1; t<=T; t++){
-            fA = fixedA;
-            fB = fixedB;
-            power = power/2;
-            for (int i=0; i<K; i++) {
-                double temp = (1-gamma)*beta[i]*ell[i]/(gamma*alpha[i]+(1-gamma)*beta[i]);
-                xDist[i]=temp;
-                fA += alpha[i]*temp*temp;
-                temp=(ell[i]-temp);
-                fB += beta[i]*temp*temp;
-            }
-            if (fA == fB) {break;}
-            gamma = (fA > fB) ? gamma+power : gamma-power;
-        }
-        return xDist;
-    }
-
     public static class PointWithGroup implements Serializable {
         public Vector point;
         public String group;
@@ -240,5 +217,26 @@ public class G45HW2 {
         return Arrays.stream(arr).map(Vectors::dense).toArray(Vector[]::new);
     }
 
-    // computeVectorX must be implemented elsewhere and available statically
+    public static double[] computeVectorX(double fixedA, double fixedB, double[] alpha, double[] beta, double[] ell, int K) {
+        double gamma = 0.5;
+        double[] xDist = new double[K];
+        double fA, fB;
+        double power = 0.5;
+        int T = 10;
+        for (int t=1; t<=T; t++){
+            fA = fixedA;
+            fB = fixedB;
+            power = power/2;
+            for (int i=0; i<K; i++) {
+                double temp = (1-gamma)*beta[i]*ell[i]/(gamma*alpha[i]+(1-gamma)*beta[i]);
+                xDist[i]=temp;
+                fA += alpha[i]*temp*temp;
+                temp=(ell[i]-temp);
+                fB += beta[i]*temp*temp;
+            }
+            if (fA == fB) {break;}
+            gamma = (fA > fB) ? gamma+power : gamma-power;
+        }
+        return xDist;
+    }
 }
