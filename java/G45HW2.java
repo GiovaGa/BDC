@@ -149,6 +149,7 @@ public class G45HW2 {
         long N = data.count();
         long NA = data.filter(p -> p.group.equals("A")).count();
         long NB = data.filter(p -> p.group.equals("B")).count();
+        System.out.printf("Input file = %s, L = %d, K = %d, M = %d\n", filePath, L, K, M);
         System.out.printf("N = %d, NA = %d, NB = %d\n", N, NA, NB);
 
         long t0 = System.currentTimeMillis();
