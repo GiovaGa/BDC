@@ -91,13 +91,12 @@ if __name__ == "__main__":
     stream = ssc.socketTextStream("algo.dei.unipd.it", portExp, StorageLevel.MEMORY_AND_DISK)
     stream.foreachRDD(lambda time, batch: process_batch(time, batch))
 
-    print(f"Parameters: port={portExp}, T={T}, D={D}, W={W}, K={K}")
-    print("Starting streaming engine...")
+    print(f"Port = {portExp} T = {T} D = {D} W = {W} K = {K}")
+
     ssc.start()
     stopping_condition.wait()
-    print("Stopping streaming engine...")
     ssc.stop(False, False)
-    print("Streaming engine stopped")
+
 
     # Calcolo risultati finali
 
@@ -146,17 +145,19 @@ if __name__ == "__main__":
     avg_err_CM = sum(errors_CM) / len(errors_CM) if errors_CM else 0
     avg_err_CS = sum(errors_CS) / len(errors_CS) if errors_CS else 0
 
-    # Stampa risultati
-    print(f"Number of items processed = {total_items}")
-    print(f"Number of distinct items = {distinct_items}")
-    print(f"Average relative error Count-Min Sketch = {avg_err_CM:.6f}")
-    print(f"Average relative error Count Sketch = {avg_err_CS:.6f}")
+    # Output formattato nello stile richiesto
+    print(f"Port = {portExp} T = {T} D = {D} W = {W} K = {K}")
+    print(f"Number of processed items = {total_items}")
+    print(f"Number of distinct items  = {distinct_items}")
+    print(f"Number of Top-K Heavy Hitters = {K}")
+    print(f"Avg Relative Error for Top-K Heavy Hitters with CM = {avg_err_CM:.15f}")
+    print(f"Avg Relative Error for Top-K Heavy Hitters with CS = {avg_err_CS:.15E}")
 
-    # Se K <= 10, stampa frequenze vere ed stimate (solo CM)
     if K <= 10:
-        print("\nTop-K heavy hitters frequencies (True vs CM estimate):")
+        print("Top-K Heavy Hitters:")
         for i in range(K):
             x, fx = sorted_freq[i]
             f_CM = estimate_CM(x)
-            print(f"Item {x}: True freq = {fx}, CM estimate = {f_CM}")
+            print(f"Item {x} True Frequency = {fx} Estimated Frequency with CM = {f_CM}")
+
 
