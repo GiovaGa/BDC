@@ -149,7 +149,7 @@ if __name__ == "__main__":
     print(f"Port = {portExp} T = {T} D = {D} W = {W} K = {K}")
     print(f"Number of processed items = {total_items}")
     print(f"Number of distinct items  = {distinct_items}")
-    print(f"Number of Top-K Heavy Hitters = {K}")
+    print(f"Number of Top-K Heavy Hitters = {len(heavy_hitters)}")
     print(f"Avg Relative Error for Top-K Heavy Hitters with CM = {avg_err_CM:.15f}")
     print(f"Avg Relative Error for Top-K Heavy Hitters with CS = {avg_err_CS:.15E}")
 
